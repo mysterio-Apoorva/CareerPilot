@@ -1,0 +1,7 @@
+{
+  "course": {"domains": "huggingface.co,learn.microsoft.com,developers.google.com,nptel.ac.in", "query": "course tutorial prerequisites curriculum"},
+  "internship": {"domains": "careers.microsoft.com,google.com,amazon.jobs", "query": "student internship qualifications apply"},
+  "competition": {"domains": "devpost.com,unstop.com,mlh.io", "query": "hackathon competition eligibility deadline"},
+  "program": {"domains": "summerofcode.withgoogle.com,education.github.com,lfx.linuxfoundation.org", "query": "student program eligibility applications"},
+  "networking": {"domains": "huggingface.co,github.com,microsoft.com", "query": "research team open source community contribute"}
+}

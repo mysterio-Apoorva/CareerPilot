@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8,<10
+playwright>=1.48,<2
+reportlab>=4,<6
