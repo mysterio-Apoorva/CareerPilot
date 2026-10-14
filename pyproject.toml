@@ -1,2 +1,17 @@
+[project]
+name = "careerpilot"
+version = "0.1.0"
+description = "Evidence-backed career portfolios powered by TinyFish"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "streamlit==1.65.0",
+  "fastapi>=0.117.1,<1",
+  "openai>=1.50,<4",
+  "pydantic>=2.8,<3",
+  "pypdf>=5,<7",
+  "python-docx>=1.1,<2",
+  "python-dotenv>=1,<2",
+]
+
 [tool.vercel]
 entrypoint = "server:app"

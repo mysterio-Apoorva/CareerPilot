@@ -1,5 +1,6 @@
 """Real-browser regression: two different uploaded resumes must not share facts."""
 import io
+import sys
 from docx import Document
 from playwright.sync_api import sync_playwright, expect
 
@@ -17,7 +18,7 @@ with sync_playwright() as p:
     browser = p.chromium.launch(channel="msedge", headless=True)
     page = browser.new_page(viewport={"width":1440,"height":1100})
     page.set_default_timeout(15000)
-    page.goto("http://127.0.0.1:8501", wait_until="networkidle")
+    page.goto(sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8501", wait_until="networkidle")
     page.get_by_test_id("stSidebar").get_by_text("Profile", exact=True).click()
     skills = page.get_by_role("textbox", name="Confirmed skills (comma-separated)")
     projects = page.get_by_role("textbox", name="Existing projects and commitments")

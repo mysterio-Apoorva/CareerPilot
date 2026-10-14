@@ -9,10 +9,10 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Interface-Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![TinyFish](https://img.shields.io/badge/TinyFish-Search_%2B_Fetch_%2B_Browser-2563EB?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-39_passing-16855B?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-45_passing-16855B?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Hackathon_MVP-E8A02D?style=flat-square)
 
-[Quick start](#quick-start) · [Screenshots](#the-real-product) · [TinyFish integration](#where-tinyfish-does-the-work) · [Live validation](#what-was-actually-tested) · [Limitations](#honest-boundaries)
+[Live app](https://careerpilot-rho-inky.vercel.app) · [Quick start](#quick-start) · [Screenshots](#the-real-product) · [TinyFish integration](#where-tinyfish-does-the-work) · [Live validation](#what-was-actually-tested) · [Limitations](#honest-boundaries)
 
 </div>
 
@@ -245,7 +245,7 @@ npx --yes vercel@latest link --yes --project careerpilot
 npx --yes vercel@latest deploy --prod --yes
 ```
 
-Vercel's WebSocket support is in public beta and function connections have a finite lifetime. Session state is in memory; refreshes or instance changes can require re-uploading a resume. Hosted uploads are limited to 4 MB. Explore the captured snapshot without credentials, or enter your API credentials in the session's Integration settings for fresh research.
+Vercel's WebSocket support is in public beta and function connections have a finite lifetime. Session state is in memory; refreshes or instance changes can require re-uploading a resume. Hosted uploads use a bounded **3 MB** Streamlit component that transfers the file through the active session connection, avoiding HTTP-upload routing to another worker. Local Streamlit keeps its standard uploader. Explore the captured snapshot without credentials, or enter your API credentials in the session's Integration settings for fresh research.
 
 References: [Vercel Python runtime](https://vercel.com/docs/functions/runtimes/python), [WebSocket support and connection lifetime](https://vercel.com/kb/guide/do-vercel-serverless-functions-support-websocket-connections).
 
@@ -266,7 +266,7 @@ Validation performed on **2026-10-14**. Current opportunity availability must be
 | GPT resume / source extraction | Code integrated; no OpenAI key available | **Not live-tested** |
 | Automatic application / outreach | Intentionally absent | Not performed |
 
-Latest test run: **39 passed**, including the actual research-button invocation, blank-profile behavior, arbitrary resume skills, document replacement, evidence validation, and hosted HTTP transport. A real-browser regression also uploaded two different resumes and verified that their skills, education, projects, and graduation fields do not leak between documents. Synthetic unit-test activities are not used as real opportunities.
+Latest test run: **45 passed**, including the actual research-button invocation, blank-profile behavior, arbitrary resume skills, document replacement, evidence validation, hosted HTTP transport, and bounded upload decoding. A real-browser regression also uploaded two different resumes and verified that their skills, education, projects, and graduation fields do not leak between documents. Synthetic unit-test activities are not used as real opportunities.
 
 ### Reproduce validation
 

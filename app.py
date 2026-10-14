@@ -128,7 +128,11 @@ elif page == "Profile":
     st.markdown('<div class="eyebrow">01 / YOUR STARTING POINT</div>', unsafe_allow_html=True)
     st.title("A little context. A better plan.")
     st.write("Read resume extracts your actual document. When GPT is configured, this action also sends the text to GPT for structured analysis; otherwise local section extraction is used. Review the facts before saving. Unknown fields stay blank.")
-    upload = st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
+    if os.getenv("VERCEL") or os.getenv("CAREERPILOT_SOCKET_UPLOAD"):
+        from careerpilot.upload import session_resume_uploader
+        upload = session_resume_uploader()
+    else:
+        upload = st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
     document_id = hashlib.sha256(upload.getvalue()).hexdigest() if upload else None
     if document_id != st.session_state.get("resume_document_id"):
         st.session_state.resume_document_id = document_id
