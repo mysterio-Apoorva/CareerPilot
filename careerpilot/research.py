@@ -5,8 +5,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import Fact, Opportunity, Report, Source, now
-from .engine import gaps_for, project_proposals
-from .resume_parser import explicit_skills
+from .engine import gaps_for, project_proposals, ROLE_SKILLS
 from .tinyfish_client import canonical, safe_url
 
 REGISTRY = json.loads((Path(__file__).resolve().parent.parent / "config/sources.json").read_text())
@@ -15,7 +14,9 @@ REGISTRY = json.loads((Path(__file__).resolve().parent.parent / "config/sources.
 def extract_conservative(source, category):
     """No unsupported dates/eligibility: excerpts are evidence, advice is labeled."""
     text = source.text
-    skills = explicit_skills(text)
+    # This is a role-taxonomy match on public opportunity pages, not resume parsing.
+    vocabulary = sorted({skill for values in ROLE_SKILLS.values() for skill in values})
+    skills = [skill for skill in vocabulary if re.search(r"(?<!\w)" + re.escape(skill) + r"(?!\w)", text, re.I)]
     facts = []
     for skill in skills[:6]:
         match = re.search(r"[^\n]{0,100}\b" + re.escape(skill) + r"\b[^\n]{0,140}", text, re.I)

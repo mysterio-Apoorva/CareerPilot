@@ -1,13 +1,14 @@
 from datetime import date
 from pathlib import Path
 import html
+import hashlib
 import json
 import os
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from careerpilot.models import Profile, Constraints, Report
-from careerpilot.resume_parser import extract_resume, explicit_skills
+from careerpilot.resume_parser import extract_resume, parse_profile, apply_extraction, ResumeExtraction
 from careerpilot.llm import Reasoner
 from careerpilot.tinyfish_client import TinyFish
 from careerpilot.research import run_research
@@ -90,7 +91,7 @@ with st.sidebar:
 
 constraints = Constraints(weekly_hours=hours, budget=budget, currency=currency, weeks=weeks)
 if "profile" not in st.session_state:
-    st.session_state.profile = Profile(graduation_year=date.today().year + 1)
+    st.session_state.profile = Profile()
 profile = st.session_state.profile
 report = st.session_state.get("report")
 plan = select_portfolio(report.opportunities, profile, constraints) if report else None
@@ -117,6 +118,7 @@ if page == "Overview":
         st.session_state.report = loaded
         st.session_state.profile = loaded.profile
         st.session_state.snapshot = True
+        st.session_state.profile_confirmed = True
         st.rerun()
     if report:
         st.success(f"Portfolio ready for {profile.role}. Open Portfolio or Roadmap in the sidebar.")
@@ -125,54 +127,95 @@ if page == "Overview":
 elif page == "Profile":
     st.markdown('<div class="eyebrow">01 / YOUR STARTING POINT</div>', unsafe_allow_html=True)
     st.title("A little context. A better plan.")
-    st.write("Resume content is processed for career advice. Only role and broad constraints are sent to TinyFish searches; GPT receives resume text only when configured and you request analysis.")
+    st.write("Read resume extracts your actual document. When GPT is configured, this action also sends the text to GPT for structured analysis; otherwise local section extraction is used. Review the facts before saving. Unknown fields stay blank.")
     upload = st.file_uploader("Upload PDF or DOCX", type=["pdf", "docx"])
+    document_id = hashlib.sha256(upload.getvalue()).hexdigest() if upload else None
+    if document_id != st.session_state.get("resume_document_id"):
+        st.session_state.resume_document_id = document_id
+        for key in ("resume_text", "resume_extraction", "gpt_profile", "extracted_skills", "report"):
+            st.session_state.pop(key, None)
+        profile = apply_extraction(profile, ResumeExtraction())
+        st.session_state.profile = profile
+        st.session_state.profile_confirmed = False
+        st.session_state.profile_revision = st.session_state.get("profile_revision", 0) + 1
     if upload and st.button("Read resume"):
         try:
             text = extract_resume(upload.getvalue(), upload.name)
             st.session_state.resume_text = text
-            st.session_state.extracted_skills = ", ".join(explicit_skills(text))
-            st.success("Text extracted. Confirm the detected skills below; mentions do not establish proficiency.")
+            parsed = parse_profile(text)
+            if reasoner.available:
+                try:
+                    with st.spinner("Extracting resume-backed facts with GPT…"):
+                        parsed = reasoner.profile(text)
+                except Exception:
+                    st.warning("GPT analysis failed. The fields below use local section extraction, not generated facts.")
+            profile = apply_extraction(profile, parsed)
+            st.session_state.profile = profile
+            st.session_state.resume_extraction = parsed.model_dump()
+            st.session_state.profile_confirmed = False
+            st.session_state.pop("report", None)
+            st.session_state.profile_revision = st.session_state.get("profile_revision", 0) + 1
+            st.success(f"Text extracted from {upload.name}. Review the populated facts and fill any missing information.")
         except ValueError as exc:
             st.error(str(exc))
     if st.session_state.get("resume_text"):
         with st.expander("Extracted text (this session only)"):
-            st.text(st.session_state.resume_text[:12000])
+            st.text(st.session_state.resume_text)
         if reasoner.available and st.button("Analyze resume with GPT"):
             try:
                 with st.spinner("Extracting supported profile facts…"):
-                    data = reasoner.profile(st.session_state.resume_text)
-                supported = [s["name"] for s in data.get("skills", []) if s.get("quote") and s["quote"] in st.session_state.resume_text]
-                st.session_state.extracted_skills = ", ".join(supported)
-                st.session_state.gpt_profile = data
+                    parsed = reasoner.profile(st.session_state.resume_text)
+                profile = apply_extraction(profile, parsed)
+                st.session_state.profile = profile
+                st.session_state.resume_extraction = parsed.model_dump()
+                st.session_state.profile_confirmed = False
+                st.session_state.pop("report", None)
+                st.session_state.profile_revision = st.session_state.get("profile_revision", 0) + 1
             except Exception:
                 st.error("GPT analysis failed. Check model and credentials; manual entry remains available.")
-    if st.session_state.get("gpt_profile"):
-        st.json(st.session_state.gpt_profile, expanded=False)
+    if st.session_state.get("resume_extraction"):
+        extraction = st.session_state.resume_extraction
+        st.caption(extraction["method"])
+        with st.expander("Where the extracted facts came from"):
+            st.json(extraction["evidence"], expanded=True)
+        if extraction.get("inferred_skills"):
+            st.info("Unconfirmed inferences (not added to your skills): " + ", ".join(extraction["inferred_skills"]))
+        missing = [label for label, value in [("education", profile.education), ("academic stage", profile.academic_stage), ("graduation year", profile.graduation_year)] if not value]
+        if missing:
+            st.info("Not established from this resume: " + ", ".join(missing) + ". Fill these in if relevant; unknown is allowed.")
+    rev = st.session_state.get("profile_revision", 0)
     with st.form("profile_form"):
         a,b = st.columns(2)
-        role = a.text_input("Target role", profile.role)
-        location = b.text_input("Preferred location", profile.location)
-        skills = st.text_input("Confirmed skills (comma-separated)", st.session_state.get("extracted_skills", ", ".join(profile.skills)))
-        projects = st.text_area("Existing projects and commitments", profile.projects)
+        role = a.text_input("Target role", profile.role, key=f"role_{rev}", placeholder="What role are you targeting?")
+        location = b.text_input("Preferred location", profile.location, key=f"location_{rev}")
+        skills = st.text_input("Confirmed skills (comma-separated)", ", ".join(profile.skills), key=f"skills_{rev}")
+        education = st.text_area("Education", profile.education, key=f"education_{rev}")
+        projects = st.text_area("Existing projects and commitments", profile.projects, key=f"projects_{rev}")
         a,b = st.columns(2)
-        stage = a.text_input("Academic stage", profile.academic_stage)
-        graduation = b.number_input("Expected graduation year (0 if unknown)", min_value=0, max_value=2100, value=profile.graduation_year or 0)
-        companies = st.text_input("Target companies (optional)", profile.companies)
+        stage = a.text_input("Academic stage", profile.academic_stage, key=f"stage_{rev}")
+        graduation = b.number_input("Expected graduation year (0 if unknown)", min_value=0, max_value=2100, value=profile.graduation_year or 0, key=f"graduation_{rev}")
+        with st.expander("Experience, certifications & achievements"):
+            experience = st.text_area("Work / research experience", profile.experience, key=f"experience_{rev}")
+            certifications = st.text_area("Courses / certifications", profile.certifications, key=f"certifications_{rev}")
+            achievements = st.text_area("Achievements / leadership", profile.achievements, key=f"achievements_{rev}")
+        companies = st.text_input("Target companies (optional)", profile.companies, key=f"companies_{rev}")
         categories = st.multiselect("Research categories", list(["course", "internship", "competition", "program", "networking"]), default=profile.categories)
         remote = st.checkbox("Consider remote opportunities (geographic eligibility still applies)", profile.remote)
-        confirmed = st.checkbox("I have reviewed these profile facts and my available hours.")
+        confirmed = st.checkbox("I have reviewed these profile facts and my available hours.", key=f"confirmed_{rev}")
         submit = st.form_submit_button("Save profile", type="primary")
     if submit:
         if not role.strip() or not confirmed:
             st.error("Add a target role and confirm your profile before saving.")
         else:
-            updated = Profile(role=role.strip(), location=location.strip(), academic_stage=stage,
+            updated = Profile(role=role.strip(), location=location.strip(), academic_stage=stage, education=education,
                               graduation_year=graduation or None, skills=[s.strip() for s in skills.split(",") if s.strip()],
-                              projects=projects, companies=companies, remote=remote, categories=categories)
+                              projects=projects, experience=experience, certifications=certifications, achievements=achievements,
+                              companies=companies, remote=remote, categories=categories)
             if updated != profile:
                 st.session_state.pop("report", None)
             st.session_state.profile = updated
+            st.session_state.profile_confirmed = True
+            st.session_state.snapshot = False
             st.success("Profile saved. Open Research lab to start live discovery.")
 
 elif page == "Research lab":
@@ -181,7 +224,9 @@ elif page == "Research lab":
     st.write(f"Researching **{profile.role}** · **{profile.location}**. Up to ten candidate pages across your selected categories.")
     if not reasoner.available:
         st.warning("GPT is not configured. Live TinyFish research still works; extraction stays conservative and all external eligibility remains uncertain until you review it.")
-    if st.button("Start live TinyFish research", type="primary", disabled=not bool(client.key)):
+    if not profile.role or not st.session_state.get("profile_confirmed"):
+        st.info("Save and confirm your actual profile in Profile before starting research.")
+    if st.button("Start live TinyFish research", type="primary", disabled=not bool(client.key and profile.role and st.session_state.get("profile_confirmed"))):
         with st.status("Investigating public sources…", expanded=True) as progress:
             result = run_research(
                 profile=profile,

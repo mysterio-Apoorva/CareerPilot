@@ -8,15 +8,26 @@ def now():
 
 
 class Profile(BaseModel):
-    role: str = "AI engineering intern"
-    location: str = "India"
-    academic_stage: str = "Undergraduate, third year"
+    role: str = ""
+    location: str = ""
+    education: str = ""
+    academic_stage: str = ""
     graduation_year: int | None = None
-    skills: list[str] = Field(default_factory=lambda: ["Python", "SQL", "Git", "machine learning"])
-    projects: str = "Tabular machine learning project with cross-validation"
+    skills: list[str] = Field(default_factory=list)
+    projects: str = ""
+    experience: str = ""
+    certifications: str = ""
+    achievements: str = ""
     companies: str = ""
     remote: bool = True
     categories: list[str] = Field(default_factory=lambda: ["course", "internship", "competition", "program", "networking"])
+
+
+def sample_profile():
+    """Explicit fictional demo only; never used to initialize a student's profile."""
+    return Profile(role="AI engineering intern", location="India", academic_stage="Undergraduate, third year",
+                   graduation_year=date.today().year + 1, skills=["Python", "SQL", "Git", "machine learning"],
+                   projects="Tabular machine learning project with cross-validation")
 
 
 class Constraints(BaseModel):

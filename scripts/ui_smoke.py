@@ -13,6 +13,7 @@ with sync_playwright() as p:
     page.get_by_role("button", name="Read resume", exact=True).click()
     page.get_by_text("Text extracted.", exact=False).wait_for()
     assert "Python" in page.get_by_role("textbox", name="Confirmed skills (comma-separated)").input_value()
+    page.get_by_role("textbox", name="Target role", exact=True).fill("AI engineering intern")
     page.get_by_text("I have reviewed these profile facts and my available hours.", exact=True).click()
     page.get_by_role("button", name="Save profile", exact=True).click()
     page.get_by_text("Profile saved.", exact=False).wait_for()

@@ -29,6 +29,14 @@ class Reasoner:
         return json.loads(text)
 
     def profile(self, text):
-        return self.json("Extract {education: string|null, graduation_year: integer|null, "
-                         "skills: [{name: string, quote: exact excerpt}], projects: string, "
-                         "inferred_skills: [string]}. Only explicit skills with exact quotes belong in skills.", text)
+        from .resume_parser import validate_gpt_profile
+        data = self.json(
+            "Extract this actual resume. Return {education:[{quote:string}], academic_stage:[{quote:string}], "
+            "graduation_year:{value:integer,quote:string}|null, skills:[{name:string,quote:string}], "
+            "projects:[{quote:string}], experience:[{quote:string}], certifications:[{quote:string}], "
+            "achievements:[{quote:string}], inferred_skills:[string]}. Every quote must be an exact "
+            "contiguous excerpt from the input. Skills may be ANY explicitly stated technology or competency, "
+            "not a predefined vocabulary. Names must occur in their quote. Never infer a graduation year "
+            "from today's date. Use empty arrays/null for absent facts. Separate inferred skills; do not "
+            "add skills merely because a target role would require them.", text)
+        return validate_gpt_profile(data, text)

@@ -8,6 +8,25 @@ def test_dashboard_loads_and_navigation_works():
     assert not app.exception
 
 
+def test_profile_form_starts_blank_and_applies_actual_extraction():
+    from careerpilot.models import Profile
+    from careerpilot.resume_parser import apply_extraction, parse_profile
+    root = Path(__file__).resolve().parent.parent
+    app = AppTest.from_file(str(root / "app.py"), default_timeout=15).run()
+    app.sidebar.radio[0].set_value("Profile").run()
+    assert next(x for x in app.text_input if x.label == "Confirmed skills (comma-separated)").value == ""
+    assert next(x for x in app.text_area if x.label == "Existing projects and commitments").value == ""
+    parsed = parse_profile("Skills: Zig, Rust\nEducation\nB.Tech Robotics\nExpected graduation: 2029\nProjects\nBuilt a robot")
+    app.session_state["profile"] = apply_extraction(Profile(), parsed)
+    app.session_state["resume_extraction"] = parsed.model_dump()
+    app.session_state["profile_revision"] = 1
+    app.run()
+    assert not app.exception
+    assert next(x for x in app.text_input if x.label == "Confirmed skills (comma-separated)").value == "Zig, Rust"
+    assert "robot" in next(x for x in app.text_area if x.label == "Existing projects and commitments").value
+    assert next(x for x in app.number_input if "graduation year" in x.label).value == 2029
+
+
 def test_start_research_button_passes_constraints_to_pipeline(monkeypatch):
     """Exercise the actual button and function boundary without external requests."""
     monkeypatch.setenv("TINYFISH_API_KEY", "test-fixture-key")
@@ -16,6 +35,9 @@ def test_start_research_button_passes_constraints_to_pipeline(monkeypatch):
     root = Path(__file__).resolve().parent.parent
     with patch("careerpilot.tinyfish_client.TinyFish.search", return_value={"results": []}) as search:
         app = AppTest.from_file(str(root / "app.py"), default_timeout=15).run()
+        from careerpilot.models import sample_profile
+        app.session_state["profile"] = sample_profile()
+        app.session_state["profile_confirmed"] = True
         app.sidebar.radio[0].set_value("Research lab").run()
         app.sidebar.number_input[0].set_value(0).run()
         next(b for b in app.button if b.label == "Start live TinyFish research").click().run()

@@ -9,7 +9,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Interface-Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![TinyFish](https://img.shields.io/badge/TinyFish-Search_%2B_Fetch_%2B_Browser-2563EB?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-28_passing-16855B?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-39_passing-16855B?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Hackathon_MVP-E8A02D?style=flat-square)
 
 [Quick start](#quick-start) · [Screenshots](#the-real-product) · [TinyFish integration](#where-tinyfish-does-the-work) · [Live validation](#what-was-actually-tested) · [Limitations](#honest-boundaries)
@@ -67,7 +67,7 @@ The conservative demo deliberately selects a self-directed project and keeps ext
 
 ## Where TinyFish does the work
 
-TinyFish is the application's research execution layer. The Python process invokes the installed CLI directly; the dashboard does not depend on a coding assistant being present.
+TinyFish is the application's research execution layer. Locally the Python process invokes the installed CLI. The Vercel entry point uses a direct HTTP transport whose endpoints and authentication were verified against the installed official `@tiny-fish/sdk`; no Node CLI is required in the cloud. The dashboard does not depend on a coding assistant being present.
 
 | Stage | Real capability | Implemented behavior | Evidence returned |
 |---|---|---|---|
@@ -229,6 +229,26 @@ The project deliberately does not invent a TinyFish installation command. Instal
 6. Open **Portfolio**, inspect evidence, and review uncertain conditions.
 7. Reduce the hours slider to see selection change, then inspect **Roadmap**.
 
+### Resume extraction: your document, not the demo profile
+
+New profiles start blank. PDF/DOCX text is read from the uploaded file. The local parser extracts the resume's own skills sections without a fixed technology whitelist, plus education, explicit graduation dates, projects, experience, certifications, and achievements. Source excerpts are available beside the editable profile. Missing information stays blank.
+
+With GPT credentials configured, **Read resume** also performs structured GPT extraction and checks returned evidence against the actual document. Unsupported claims are discarded; inferred skills stay separate. Uploading a different resume clears prior resume facts and invalidates the old research report. The fictional student is loaded only through the explicitly labeled snapshot button.
+
+### Vercel deployment
+
+`server.py` mounts the unchanged Streamlit UI through Streamlit 1.65's ASGI interface and FastAPI. `pyproject.toml` selects this entry point, and `vercel.json` configures the Python function. Local environments, credentials, runtime logs, and caches are excluded by `.vercelignore`.
+
+```powershell
+npx --yes vercel@latest login
+npx --yes vercel@latest link --yes --project careerpilot
+npx --yes vercel@latest deploy --prod --yes
+```
+
+Vercel's WebSocket support is in public beta and function connections have a finite lifetime. Session state is in memory; refreshes or instance changes can require re-uploading a resume. Hosted uploads are limited to 4 MB. Explore the captured snapshot without credentials, or enter your API credentials in the session's Integration settings for fresh research.
+
+References: [Vercel Python runtime](https://vercel.com/docs/functions/runtimes/python), [WebSocket support and connection lifetime](https://vercel.com/kb/guide/do-vercel-serverless-functions-support-websocket-connections).
+
 ## What was actually tested
 
 Validation performed on **2026-10-14**. Current opportunity availability must be checked again before acting.
@@ -246,7 +266,7 @@ Validation performed on **2026-10-14**. Current opportunity availability must be
 | GPT resume / source extraction | Code integrated; no OpenAI key available | **Not live-tested** |
 | Automatic application / outreach | Intentionally absent | Not performed |
 
-Latest test run: **28 passed**, including the actual research-button invocation with budget constraints. Synthetic unit-test activities are named as fixtures and are not used as real opportunities.
+Latest test run: **39 passed**, including the actual research-button invocation, blank-profile behavior, arbitrary resume skills, document replacement, evidence validation, and hosted HTTP transport. A real-browser regression also uploaded two different resumes and verified that their skills, education, projects, and graduation fields do not leak between documents. Synthetic unit-test activities are not used as real opportunities.
 
 ### Reproduce validation
 
