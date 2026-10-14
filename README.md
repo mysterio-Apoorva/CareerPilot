@@ -6,6 +6,10 @@
 
 **A TinyFish-powered career portfolio advisor that investigates opportunities, explains uncertainty, and fits your next moves to your actual capacity.**
 
+### [Launch CareerPilot](https://careerpilot-rho-inky.vercel.app)
+
+**Live on Vercel:** https://careerpilot-rho-inky.vercel.app
+
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Interface-Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![TinyFish](https://img.shields.io/badge/TinyFish-Search_%2B_Fetch_%2B_Browser-2563EB?style=flat-square)
@@ -18,7 +22,7 @@
 
 ![CareerPilot running locally with captured real TinyFish research](docs/screenshots/02-live-overview.png)
 
-> **Implementation status:** The app runs locally. TinyFish Search and Fetch were tested through the Python application adapter; a real browser run expanded Microsoft's eligibility FAQs. The bundled demo contains nine fetched pages and the browser result. GPT support is implemented but **was not live-tested because OpenAI credentials were unavailable**. The screenshots show the working conservative mode.
+> **Implementation status:** The app is [deployed on Vercel](https://careerpilot-rho-inky.vercel.app) and also runs locally. Resume upload and extraction were verified in the deployed app using two distinct resumes. TinyFish Search and Fetch were tested through the Python application adapter; a real browser run expanded Microsoft's eligibility FAQs. The bundled demo contains nine fetched pages and the browser result. GPT support is implemented but **was not live-tested because OpenAI credentials were unavailable**. The screenshots show the working conservative mode.
 
 ## The problem
 
